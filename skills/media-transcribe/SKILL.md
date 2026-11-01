@@ -75,8 +75,35 @@ Anything after the input (or after `--`) is passed straight through to `handy-tr
 | `--json` | machine-readable output with backend, RTF, detected language |
 | `-o, --output <file>` | write to a file |
 
-Default model is `Qwen3-ASR-0.6B` (multilingual, strong on CJK, runs on CPU). Use
-`--model Qwen3-ASR-1.7B` when accuracy matters more than speed, `SenseVoiceSmall` for fast CPU runs.
+## Choosing the model
+
+The model is resolved in this order:
+
+1. an explicit `--model` / `-m` (and `--quant` / `-q`) on the command line;
+2. `model` / `quant` in the config — `transcribe.sh` injects them and says so on stderr
+   (`model: Qwen3-ASR-0.6B (from config)`);
+3. `handy-transcribe`'s own default: `Qwen3-ASR-0.6B`, `Q8_0`.
+
+Rules to follow:
+
+- **Say what you are using.** In your first message name the model, and if it is not downloaded yet,
+  its size: "transcribing with Qwen3-ASR-0.6B (850 MB, first run)".
+- **Ask once before a large download.** If the model is not cached and is bigger than ~300 MB, ask the
+  user before starting. Check with `scripts/doctor.sh` (it prints the configured model and whether it
+  is cached) or `handy-transcribe --list-models` (`✓` = cached). Do not ask again for that model on
+  that machine.
+- **Pick by content and hardware** when the user has no preference and nothing is configured:
+
+  | Content / machine | Model | Download | Why |
+  |---|---|---|---|
+  | Chinese, Japanese, Korean, or mixed | `Qwen3-ASR-0.6B` | 850 MB | strongest on CJK, still quick on CPU |
+  | Accuracy matters most, Apple Silicon or GPU | `Qwen3-ASR-1.7B` | 2.2 GB | best quality, needs headroom |
+  | English only | `parakeet-tdt-0.6b-v3` | 740 MB | English-specialised, fast |
+  | Weak CPU / long audio / speed-critical | `SenseVoiceSmall` | 253 MB | tiny and very fast |
+  | Anything else | `Qwen3-ASR-0.6B` | 850 MB | safe default |
+
+- **Persist the choice** once the user agrees: add `"model": "…"` (and optionally `"quant": "Q8_0"`)
+  to the config so later runs do not ask again.
 
 ## Configuration
 

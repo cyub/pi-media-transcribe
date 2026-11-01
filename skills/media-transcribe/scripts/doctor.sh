@@ -57,6 +57,31 @@ else
 fi
 echo
 
+echo "transcription model"
+cfg_model="$(config_get model "")"
+cfg_quant="$(config_get quant "")"
+used_model="${cfg_model:-Qwen3-ASR-0.6B}"
+if [[ -n "$cfg_model" ]]; then
+  ok "configured: $cfg_model${cfg_quant:+ (quant $cfg_quant)}"
+else
+  note "not configured — handy-transcribe default: $used_model (add \"model\" to $CONFIG_FILE to pin it)"
+fi
+if [[ -n "$handy" ]]; then
+  # Capture first, then match: `| grep -q` closes the pipe early, and with pipefail a
+  # SIGPIPE from the ASR binary would make the pipeline fail even when the match succeeds.
+  catalog_listing="$("$handy" --list-models 2>/dev/null || true)"
+  if grep -q "^✓ $used_model " <<<"$catalog_listing"; then
+    ok "cached locally"
+  else
+    note "not cached yet — the first run downloads it (0.6B Q8_0 is ~850 MB)"
+  fi
+fi
+case "$(uname -s)" in
+  Darwin) note "recommendation: Qwen3-ASR-0.6B for zh/ja/ko, Qwen3-ASR-1.7B for maximum accuracy (Metal)" ;;
+  *) note "recommendation: Qwen3-ASR-0.6B, or SenseVoiceSmall for speed on weak CPUs" ;;
+esac
+echo
+
 echo "media download (only needed for URL input)"
 for tool in yt-dlp ffmpeg; do
   if command -v "$tool" >/dev/null 2>&1; then

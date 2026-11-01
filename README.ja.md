@@ -120,6 +120,8 @@ scripts/to-obsidian.sh ./meeting.m4a --raw --vault ~/notes/inbox
   "baseSubdir": "Notes",
   "locale": "auto",
   "tags": ["auto-transcribed"],
+  "model": "Qwen3-ASR-0.6B",
+  "quant": "Q8_0",
   "llm": {
     "baseUrl": "https://api.deepseek.com",
     "model": "deepseek-chat",
@@ -148,6 +150,9 @@ scripts/to-obsidian.sh ./meeting.m4a --raw --vault ~/notes/inbox
 ローカルサーバー（Ollama / LM Studio / vLLM）なら、文字起こしも整形もマシンの外に出ません。Ollama は
 キーを検証しないので、空でなければ何でも構いません。
 
+- **転写モデル:** `model`/`quant` で ASR モデルを固定できます。`--model` を渡さないときは
+  `transcribe.sh` が自動で注入するため、マシンごとに安定した既定値になります。初回はダウンロードが
+  走ります（`Qwen3-ASR-0.6B` Q8_0 で約 850 MB）。`scripts/doctor.sh` で使用モデルとキャッシュ状況を確認できます。
 - **長い録音:** `llm.maxDirectChars`（既定 48,000 文字）以下は 1 リクエスト。それを超えると
   `llm.chunkChars`（既定 24,000）ごとに圧縮してから統合します。
 - **安全性:** LLM は提示されたフォルダからしか選べず、最終パスはノートフォルダ内か検証されます。同名の

@@ -44,6 +44,31 @@ main() {
   local handy
   handy="$(require_handy)"
 
+  # Explicit CLI flags always win; otherwise fall back to the configured model/quant so a
+  # machine's default is stable and visible instead of being guessed on every run.
+  local has_model=0 has_quant=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+      -m | --model | --model=*) has_model=1 ;;
+      -q | --quant | --quant=*) has_quant=1 ;;
+    esac
+  done
+  if [[ $has_model -eq 0 ]]; then
+    local cfg_model
+    cfg_model="$(config_get model "")"
+    if [[ -n "$cfg_model" ]]; then
+      set -- "$@" --model "$cfg_model"
+      info "model: $cfg_model (from config)"
+    fi
+  fi
+  if [[ $has_quant -eq 0 ]]; then
+    local cfg_quant
+    cfg_quant="$(config_get quant "")"
+    if [[ -n "$cfg_quant" ]]; then
+      set -- "$@" --quant "$cfg_quant"
+    fi
+  fi
+
   # Cache key: input + model + every pass-through flag + binary identity.
   local bin_stamp
   bin_stamp="$("$handy" --version 2>/dev/null | head -1)-$(wc -c <"$handy" 2>/dev/null | tr -d ' ')"

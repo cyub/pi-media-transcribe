@@ -1,8 +1,12 @@
 {
   "vault": "~/Documents/Obsidian Vault",
   "baseSubdir": "Resources",
+  "model": "Qwen3-ASR-0.6B",
+  "quant": "Q8_0",
   "locale": "auto",
-  "tags": ["auto-transcribed"],
+  "tags": [
+    "auto-transcribed"
+  ],
   "llm": {
     "baseUrl": "https://api.deepseek.com",
     "model": "deepseek-chat",

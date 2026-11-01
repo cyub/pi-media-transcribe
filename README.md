@@ -41,6 +41,10 @@ want it: `--raw` skips the model entirely.
 - **Three separable modes:** transcript only, verbatim note, or polished note — pick per job.
 - **Any notes folder:** Obsidian vaults, plain Markdown folders, anything. Frontmatter included.
 - **Nine heading languages:** English, 中文, 日本語, 한국어, Русский, Deutsch, Español, Français, Português, detected from the transcript's script.
+- **Transcription model:** `model`/`quant` pin the ASR model. `transcribe.sh` injects them when you
+  do not pass `--model`, so a machine keeps one stable default instead of guessing per run. The first
+  run downloads it (`Qwen3-ASR-0.6B` Q8_0 ≈ 850 MB); `scripts/doctor.sh` shows what would be used and
+  whether it is already cached.
 - **Long recordings:** one request for a normal talk, chunk-and-merge for a three-hour podcast.
 - **Never loses work:** if the LLM step fails, the raw transcript is still written as a note.
 - **Bring your own model:** OpenAI, OpenRouter, DeepSeek, or a local Ollama / LM Studio server.
@@ -120,6 +124,8 @@ Optional. Copy [`config.example.json`](config.example.json) to
   "baseSubdir": "Resources",
   "locale": "auto",
   "tags": ["auto-transcribed"],
+  "model": "Qwen3-ASR-0.6B",
+  "quant": "Q8_0",
   "llm": {
     "baseUrl": "https://api.deepseek.com",
     "model": "deepseek-chat",

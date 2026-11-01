@@ -39,6 +39,9 @@
 - **三种模式可拆开用**：只转写、逐字落笔记、润色落笔记——按任务挑。
 - **任意笔记目录**：Obsidian vault、普通 Markdown 文件夹都行，自带 frontmatter。
 - **九种标题语言**：English、简体中文、日本語、한국어、Русский、Deutsch、Español、Français、Português，按文字系统自动识别。
+- **转写模型**：`model`/`quant` 固定 ASR 模型。没显式传 `--model` 时 `transcribe.sh` 会自动注入，
+  所以一台机器只有一份稳定默认值，不会每次现猜。首次使用会下载（`Qwen3-ASR-0.6B` Q8_0 约 850 MB）；
+  `scripts/doctor.sh` 会显示当前会用哪个模型、是否已缓存。
 - **长录音**：普通演讲一次请求，三小时播客分块压缩再合并。
 - **不丢工作**：LLM 步骤失败时，原始转写照样落成笔记。
 - **自带模型**：OpenAI、OpenRouter、DeepSeek，或本地 Ollama / LM Studio。
@@ -117,6 +120,8 @@ scripts/to-obsidian.sh ./会议.m4a --raw --vault ~/notes/inbox
   "baseSubdir": "资料",
   "locale": "auto",
   "tags": ["自动转录"],
+  "model": "Qwen3-ASR-0.6B",
+  "quant": "Q8_0",
   "llm": {
     "baseUrl": "https://api.deepseek.com",
     "model": "deepseek-chat",

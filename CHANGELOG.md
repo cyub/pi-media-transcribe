@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-11-01
+
+### Added
+
+- `model` and `quant` config keys: `transcribe.sh` injects them when no `--model` / `--quant` is given
+  on the command line, so a machine has one stable ASR default instead of a per-run choice. Explicit
+  flags still win, and injection is reported on stderr (`model: … (from config)`).
+- `doctor.sh` now reports the transcription model in use, whether it is cached locally, and a
+  language/hardware-based recommendation.
+- `SKILL.md` gained a "Choosing the model" section: state the model and its download size before the
+  first run, ask once before a download larger than ~300 MB, pick by content/hardware when the user has
+  no preference, and persist the choice to the config.
+
 ### Changed
 
 - Badges now read the published npm version; the install line no longer says "once published".
