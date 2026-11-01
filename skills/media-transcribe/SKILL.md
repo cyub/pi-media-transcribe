@@ -102,6 +102,9 @@ Rules to follow:
   | Weak CPU / long audio / speed-critical | `SenseVoiceSmall` | 253 MB | tiny and very fast |
   | Anything else | `Qwen3-ASR-0.6B` | 850 MB | safe default |
 
+- **Check the catalog instead of guessing.** `handy-transcribe --list-models --language <code>` lists
+  every model that supports a language, smallest first (add `--json` for languages/capabilities), and
+  a run warns when `-l` names a language the selected model does not list.
 - **Persist the choice** once the user agrees: add `"model": "…"` (and optionally `"quant": "Q8_0"`)
   to the config so later runs do not ask again.
 

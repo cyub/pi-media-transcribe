@@ -66,20 +66,65 @@ if [[ -n "$cfg_model" ]]; then
 else
   note "not configured — handy-transcribe default: $used_model (add \"model\" to $CONFIG_FILE to pin it)"
 fi
-if [[ -n "$handy" ]]; then
-  # Capture first, then match: `| grep -q` closes the pipe early, and with pipefail a
-  # SIGPIPE from the ASR binary would make the pipeline fail even when the match succeeds.
-  catalog_listing="$("$handy" --list-models 2>/dev/null || true)"
-  if grep -q "^✓ $used_model " <<<"$catalog_listing"; then
-    ok "cached locally"
-  else
-    note "not cached yet — the first run downloads it (0.6B Q8_0 is ~850 MB)"
-  fi
-fi
-case "$(uname -s)" in
-  Darwin) note "recommendation: Qwen3-ASR-0.6B for zh/ja/ko, Qwen3-ASR-1.7B for maximum accuracy (Metal)" ;;
-  *) note "recommendation: Qwen3-ASR-0.6B, or SenseVoiceSmall for speed on weak CPUs" ;;
+# Which language should the recommendation cover? The pinned note language, else the
+# system locale, else English.
+rec_lang="$(config_get locale "")"
+case "$rec_lang" in "" | auto) rec_lang="${LANG%%_*}" ;; esac
+# Only the languages this skill writes headings for are candidates; anything else falls back to
+# English. (A plain [A-Z] range is locale-dependent here — under LANG=zh_CN it also matches "zh".)
+rec_lang="$(printf '%s' "$rec_lang" | tr '[:upper:]' '[:lower:]')"
+case "$rec_lang" in
+  en | zh | ja | ko | ru | de | es | fr | pt) ;;
+  *) rec_lang="en" ;;
 esac
+
+catalog_ok=0
+if [[ -n "$handy" ]] && "$handy" --list-models --json >/dev/null 2>&1; then
+  catalog_ok=1
+  # Read the catalog instead of hardcoding a table: it knows languages, sizes and cache state.
+  "$PYTHON" - "$handy" "$used_model" "$rec_lang" <<'PY'
+import json, subprocess, sys
+
+exe, model_id, lang = sys.argv[1], sys.argv[2], sys.argv[3]
+OK, DIM, RESET = "\033[32m✓\033[0m", "    → ", ""
+
+
+def listing(*args):
+    proc = subprocess.run([exe, "--list-models", *args, "--json"],
+                          capture_output=True, text=True, timeout=180)
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return []
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return []
+
+
+me = next((m for m in listing() if m["id"] == model_id), None)
+if me:
+    langs = me.get("languages") or []
+    shown = ", ".join(langs[:8]) + (f" (+{len(langs) - 8} more)" if len(langs) > 8 else "")
+    print(f"  {OK if me.get('cached') else ' '} {me['size_mb']:>5} MB  {model_id} — in use")
+    print(f"{DIM}supports: {shown or '-'}")
+    if not me.get("cached"):
+        print(f"{DIM}not cached yet: the first run downloads it")
+else:
+    print(f"  ? {model_id} is not in this catalog version")
+
+for candidate in listing("--language", lang)[:3]:
+    print(f"  {OK if candidate.get('cached') else ' '} {candidate['size_mb']:>5} MB  "
+          f"{candidate['id']}  ← smallest for {lang}")
+print(f"{DIM}other languages: handy-transcribe --list-models --language <code>")
+PY
+fi
+
+if [[ $catalog_ok -eq 0 ]]; then
+  note "this handy-transcribe build cannot list languages; upgrade for sized recommendations"
+  case "$(uname -s)" in
+    Darwin) note "rule of thumb: Qwen3-ASR-0.6B for zh/ja/ko, Qwen3-ASR-1.7B for maximum accuracy" ;;
+    *) note "rule of thumb: Qwen3-ASR-0.6B, or SenseVoiceSmall for speed on weak CPUs" ;;
+  esac
+fi
 echo
 
 echo "media download (only needed for URL input)"

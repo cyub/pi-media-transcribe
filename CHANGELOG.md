@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-11-01
+
+### Changed
+
+- `doctor.sh` no longer hardcodes which model suits which OS. It reads
+  `handy-transcribe --list-models --json` and reports the model in use (size, supported languages,
+  cache state) plus the three smallest models for the language of the notes — taken from the pinned
+  `locale`, else the system `LANG`, else English. Builds older than 0.1.2 fall back to a rule of
+  thumb with an upgrade hint.
+
+### Fixed
+
+- The language fallback compared against `[A-Z]` in a `case` pattern, which also matches lowercase
+  under `LANG=zh_CN.UTF-8`, silently downgrading the recommendation to English.
+
 ## [0.2.3] - 2026-11-01
 
 ### Added
