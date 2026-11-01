@@ -46,7 +46,7 @@ main() {
 
   # Cache key: input + model + every pass-through flag + binary identity.
   local bin_stamp
-  bin_stamp="$(stat -f '%m-%z' "$handy" 2>/dev/null || stat -c '%Y-%s' "$handy" 2>/dev/null || echo unknown)"
+  bin_stamp="$("$handy" --version 2>/dev/null | head -1)-$(wc -c <"$handy" 2>/dev/null | tr -d ' ')"
   local key
   key="$(cache_key "$input" "$bin_stamp" "$@")"
   local transcript_dir="$CACHE_DIR/transcripts"

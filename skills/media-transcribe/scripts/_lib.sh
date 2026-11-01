@@ -22,6 +22,32 @@ need_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "$1 not found. $2"
 }
 
+# resolve_python — prints python3 or python, whichever exists (Windows/Git Bash and some distros
+# only ship `python`).
+resolve_python() {
+  local candidate
+  for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+}
+
+require_python() {
+  local bin
+  bin="$(resolve_python)"
+  [[ -n "$bin" ]] || die "python3 not found. Install Python 3.9+:
+    macOS:          brew install python@3.12
+    Debian/Ubuntu:  sudo apt install python3
+    Windows:        winget install Python.Python.3.12   (or run inside WSL)"
+  printf '%s' "$bin"
+}
+
+# Resolved once; every helper below uses it so `python`-only systems work.
+PYTHON="$(resolve_python)"
+[[ -n "$PYTHON" ]] || PYTHON="python3"
+
 # config_get <dotted.path> [default] — reads the JSON config, prints the value.
 config_get() {
   local path="$1" default="${2-}"
@@ -29,7 +55,7 @@ config_get() {
     printf '%s' "$default"
     return 0
   fi
-  python3 - "$CONFIG_FILE" "$path" "$default" <<'PY'
+  "$PYTHON" - "$CONFIG_FILE" "$path" "$default" <<'PY'
 import json, sys
 
 cfg_path, dotted, default = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -101,7 +127,7 @@ require_handy() {
 
 # cache_key <string...> — stable 32-char hash of the inputs.
 cache_key() {
-  python3 - "$@" <<'PY'
+  "$PYTHON" - "$@" <<'PY'
 import hashlib, sys
 
 material = "\x00".join(sys.argv[1:])

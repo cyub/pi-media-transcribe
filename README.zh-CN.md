@@ -92,6 +92,27 @@ scripts/to-obsidian.sh ./会议.m4a --raw --vault ~/notes/inbox
   只有润色模式需要它，`--raw` 完全不调用模型。
 - **长录音**：少于 `llm.maxDirectChars`（默认 48000 字符）一次性发给模型；更长则按
   `llm.chunkChars`（默认 24000）分块压缩再合并。
+
+### 多语言支持
+
+笔记正文始终跟随转录文本的语言。三个小节标题内置了 `en`/`zh`/`ja`/`ko`/`ru`/`de`/`es`/`fr`/`pt`
+九种语言，可以用 `--locale` 指定，也可以由脚本根据文字系统自动判断（假名→日语、谚文→韩语、
+汉字→中文、西里尔→俄语……）。其他文字系统（阿拉伯、希伯来、希腊、泰、天城体）以及英语以外的
+拉丁语系语言，标题保持英文、正文仍是原文语言；想要自己的措辞，用配置里的 `headings` 覆盖。
+
+### 换用别的 LLM
+
+任何 OpenAI 兼容端点都行——云端或本地：
+
+```json
+"llm": { "baseUrl": "https://api.openai.com", "model": "gpt-5-mini", "apiKeyEnv": "OPENAI_API_KEY" }
+"llm": { "baseUrl": "https://openrouter.ai/api", "model": "anthropic/claude-sonnet-5", "apiKeyEnv": "OPENROUTER_API_KEY" }
+"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b", "apiKeyEnv": "OLLAMA_API_KEY" }
+"llm": { "baseUrl": "http://localhost:1234/v1", "model": "local-model", "apiKeyEnv": "LMSTUDIO_API_KEY" }
+```
+
+本地服务（Ollama / LM Studio / vLLM）能让整条链路都不出本机——转写和润色都是。Ollama 不校验 key，
+随便给个非空值即可。
 - **安全**：LLM 只能从给定的目录列表里选，最终路径会校验在 vault 之内；同名笔记不会被覆盖，
   自动加序号（`--overwrite` 才覆盖）。
 
@@ -151,6 +172,8 @@ URL ──yt-dlp──▶ 音频 ──▶ handy-transcribe（symphonia → Sile
 - 只处理音轨，不看画面（无字幕识别、无幻灯片/关键帧理解）。
 - 润色模式消耗 token（普通录音 1 次请求，超长录音每块 1 次 + 合并 1 次）；`--raw` 零成本且全程离线。
 - `--raw` 笔记是逐字转写，包含 ASR 错字，不做校对。
+- **平台**：脚本是 bash + Python。macOS 和 Linux 开箱可用；Windows 需要 WSL 或 Git Bash
+  （`handy-transcribe` 本身在 Windows 上未测试）。
 
 ## 许可证
 

@@ -97,6 +97,34 @@ Optional. Copy [`config.example.json`](config.example.json) to
   model.
 - **Long recordings**: transcripts under `llm.maxDirectChars` (default 48 000 chars) go to the model
   in one request; longer ones are compressed in `llm.chunkChars` chunks (default 24 000) and merged.
+
+### Language support
+
+The note body is always written in the transcript's language. The three section labels are localized
+for `en`, `zh`, `ja`, `ko`, `ru`, `de`, `es`, `fr`, `pt`; pick one with `--locale`, or let the script
+detect it from the transcript's script (kana → Japanese, hangul → Korean, CJK → Chinese, Cyrillic →
+Russian, …). Other scripts (Arabic, Hebrew, Greek, Thai, Devanagari) and Latin-script languages other
+than English keep the English labels with a note body in the source language — override them with
+`headings` in the config if you want your own wording.
+
+```bash
+scripts/to-obsidian.sh ./podcast.mp3 --locale ja   # 出典 / 要点 / 本文
+scripts/to-obsidian.sh ./talk.mp3   --locale de   # Quelle / Kernaussagen / Transkript
+```
+
+### Using another LLM
+
+Anything OpenAI-compatible works — cloud or local. Examples for the `llm` block:
+
+```json
+"llm": { "baseUrl": "https://api.openai.com", "model": "gpt-5-mini", "apiKeyEnv": "OPENAI_API_KEY" }
+"llm": { "baseUrl": "https://openrouter.ai/api", "model": "anthropic/claude-sonnet-5", "apiKeyEnv": "OPENROUTER_API_KEY" }
+"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b", "apiKeyEnv": "OLLAMA_API_KEY" }
+"llm": { "baseUrl": "http://localhost:1234/v1", "model": "local-model", "apiKeyEnv": "LMSTUDIO_API_KEY" }
+```
+
+A local server (Ollama, LM Studio, vLLM) keeps the whole pipeline offline — transcription *and*
+polishing never leave the machine. Ollama ignores the key, so any non-empty value works.
 - **Safety**: the LLM may only choose from the folders it is shown, and the resulting path is
   validated against the vault root. Existing notes are never overwritten — a numeric suffix is
   added instead (`--overwrite` to replace).
@@ -158,6 +186,8 @@ URL ──yt-dlp──▶ audio ──▶ handy-transcribe (symphonia → Silero
 - The polished mode costs tokens (one request for a normal recording, one per chunk plus one merge
   for very long ones); `--raw` costs nothing and stays offline.
 - `--raw` notes are the transcript verbatim, including ASR mistakes — no proofreading.
+- **Platforms**: the scripts are bash + Python. macOS and Linux work out of the box; Windows needs
+  WSL or Git Bash (and `handy-transcribe` itself is untested on Windows).
 
 ## License
 

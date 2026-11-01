@@ -65,9 +65,41 @@ SKIP_DIRS = {
 HEADINGS = {
     "en": {"source": "Source", "summary": "Core ideas", "body": "Transcript"},
     "zh": {"source": "来源", "summary": "核心内容", "body": "正文"},
+    "ja": {"source": "出典", "summary": "要点", "body": "本文"},
+    "ko": {"source": "출처", "summary": "핵심 내용", "body": "본문"},
+    "ru": {"source": "Источник", "summary": "Ключевые идеи", "body": "Транскрипт"},
+    "de": {"source": "Quelle", "summary": "Kernaussagen", "body": "Transkript"},
+    "es": {"source": "Fuente", "summary": "Ideas clave", "body": "Transcripción"},
+    "fr": {"source": "Source", "summary": "Idées clés", "body": "Transcription"},
+    "pt": {"source": "Fonte", "summary": "Ideias principais", "body": "Transcrição"},
 }
 
-DEFAULT_TAGS = {"en": ["auto-transcribed"], "zh": ["自动转录"]}
+# Written scripts can be identified from character ranges alone. Latin-script languages cannot be
+# told apart without a language model, so they fall back to English headings (the note body still
+# follows the transcript's language).
+SCRIPT_RANGES = [
+    ("ja", r"[\u3040-\u309f\u30a0-\u30ff]"),  # hiragana / katakana
+    ("ko", r"[\uac00-\ud7af\u1100-\u11ff]"),  # hangul
+    ("zh", r"[\u4e00-\u9fff]"),                # CJK ideographs (checked after kana/hangul)
+    ("ru", r"[\u0400-\u04ff]"),
+    ("ar", r"[\u0600-\u06ff]"),
+    ("el", r"[\u0370-\u03ff]"),
+    ("he", r"[\u0590-\u05ff]"),
+    ("th", r"[\u0e00-\u0e7f]"),
+    ("hi", r"[\u0900-\u097f]"),
+]
+
+DEFAULT_TAGS = {
+    "en": ["auto-transcribed"],
+    "zh": ["自动转录"],
+    "ja": ["自動文字起こし"],
+    "ko": ["자동-전사"],
+    "ru": ["автотранскрипция"],
+    "de": ["auto-transkribiert"],
+    "es": ["transcrito-automaticamente"],
+    "fr": ["transcription-automatique"],
+    "pt": ["transcrito-automaticamente"],
+}
 
 # Below this many characters the whole transcript goes to the model in one request.
 DEFAULT_MAX_DIRECT_CHARS = 48_000
@@ -227,11 +259,26 @@ def api_key_from_pi_auth() -> str | None:
 # helpers
 # --------------------------------------------------------------------------- #
 def detect_locale(transcript: str, pinned: str) -> str:
-    if pinned in ("en", "zh"):
-        return pinned
-    cjk = len(re.findall(r"[\u4e00-\u9fff]", transcript))
-    letters = len(re.findall(r"[A-Za-z]", transcript))
-    return "zh" if cjk >= max(20, letters * 0.2) else "en"
+    """Pick the note's heading language: explicit pin, else the dominant written script, else English."""
+    if pinned and pinned != "auto":
+        return pinned if pinned in HEADINGS else "en"
+
+    counts = []
+    for code, pattern in SCRIPT_RANGES:
+        matches = len(re.findall(pattern, transcript))
+        if matches:
+            counts.append((matches, code))
+    if not counts:
+        return "en"
+
+    best_count, best_code = max(counts)
+    # A handful of stray glyphs should not switch the whole note's language, and scripts without a
+    # heading preset (Arabic, Hebrew, Greek, Thai, Devanagari, …) fall back to English labels while
+    # the body still follows the transcript's language.
+    if best_code not in HEADINGS:
+        return "en"
+    letters = len(re.findall(r"\w", transcript, re.UNICODE)) or len(transcript) or 1
+    return best_code if (best_count >= 20 or best_count / letters >= 0.05) else "en"
 
 
 def list_folders(vault: Path, base: str) -> list[str]:
@@ -240,6 +287,9 @@ def list_folders(vault: Path, base: str) -> list[str]:
     if not root.is_dir():
         return []
     folders: list[str] = []
+    if base:
+        # Offer the base folder itself, so a base with no subfolders is still a valid choice.
+        folders.append(root.relative_to(vault).as_posix())
     for first in sorted(root.iterdir()):
         if not first.is_dir() or first.name.startswith(".") or first.name.lower() in SKIP_DIRS:
             continue
@@ -359,7 +409,7 @@ def unique_path(directory: Path, stem: str, overwrite: bool) -> Path:
 def note_tags(result: dict, locale: str, config: dict, is_youtube: bool) -> list[str]:
     extra_tags = config.get("tags")
     if extra_tags is None:
-        extra_tags = DEFAULT_TAGS[locale]
+        extra_tags = DEFAULT_TAGS.get(locale, DEFAULT_TAGS["en"])
     tags: list[str] = []
     if is_youtube:
         tags.append("youtube")
@@ -394,7 +444,7 @@ def build_note(result: dict, source: str, locale: str, config: dict, is_youtube:
         if body.startswith(prefix):
             body = body[len(prefix) :].lstrip("\n")
             break
-    source_sep = "：" if locale == "zh" else ": "
+    source_sep = "：" if locale in ("zh", "ja") else ": "
     return (
         frontmatter(note_tags(result, locale, config, is_youtube), config)
         + f"{headings['source']}{source_sep}{source}\n\n"
@@ -411,7 +461,7 @@ def build_raw_note(transcript: str, source: str, title: str, locale: str,
     """No-LLM note: frontmatter, a title, and the transcript verbatim."""
     headings = dict(HEADINGS[locale])
     headings.update(config.get("headings") or {})
-    source_sep = "：" if locale == "zh" else ": "
+    source_sep = "：" if locale in ("zh", "ja") else ": "
     tags = note_tags({"tags": []}, locale, config, is_youtube)
     return (
         frontmatter(tags, config)
@@ -484,8 +534,10 @@ def parse_args() -> argparse.Namespace:
                         help="URL or file path the transcript came from")
     parser.add_argument("--vault", help="notes folder (Obsidian vault or any directory)")
     parser.add_argument("--base", help="subfolder of the notes folder to file notes under")
-    parser.add_argument("--locale", choices=["auto", "en", "zh"], default=None,
-                        help="language of the generated note (default: auto-detect from the transcript)")
+    parser.add_argument("--locale", default=None,
+                        help="heading language for the note: auto (default), en, zh, ja, ko, ru, de, "
+                             "es, fr, pt — anything else falls back to English")
+    parser.add_argument("--title", help="note title to use instead of deriving one from <source>")
     parser.add_argument("--raw", action="store_true",
                         help="skip the LLM entirely: write the transcript verbatim (no API key needed)")
     parser.add_argument("--overwrite", action="store_true", help="replace an existing note with the same title")
@@ -525,7 +577,7 @@ def main() -> None:
     folders = list_folders(vault, base)
 
     if args.raw:
-        title = default_title(args.source)
+        title = safe_filename(args.title) if args.title else default_title(args.source)
         directory = base
         note = build_raw_note(transcript, args.source, title, locale, config, is_youtube)
         print(f"raw mode: no LLM, {len(transcript):,} chars kept verbatim", file=sys.stderr)
@@ -546,6 +598,9 @@ def main() -> None:
                                     chunk_chars)
         title = safe_filename(str(result.get("title") or "untitled"))
         directory = str(result.get("directory") or "").strip().strip("/")
+        if not directory:
+            # The model found no fitting folder; fall back to the configured base instead of the root.
+            directory = base
         note = build_note(result, args.source, locale, config, is_youtube)
 
     dest_dir = (vault / directory).resolve() if directory else vault.resolve()

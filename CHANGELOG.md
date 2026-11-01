@@ -6,6 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-01
+
+### Added
+
+- Nine heading languages (`en`, `zh`, `ja`, `ko`, `ru`, `de`, `es`, `fr`, `pt`) instead of two, plus
+  per-language default tags. The heading language is inferred from the transcript's script (kana →
+  Japanese, hangul → Korean, CJK → Chinese, Cyrillic → Russian, …) or pinned with `--locale`.
+- Documentation for pointing `llm` at OpenAI, OpenRouter, Ollama or LM Studio, so the whole pipeline
+  can stay on the machine.
+- `doctor.sh` reports platform notes and the resolved interpreter.
+
+### Changed
+
+- `python3` is no longer a hard requirement: `python` is used when that is all a system provides
+  (common on Windows/Git Bash).
+
+### Fixed
+
+- Notes no longer land in the notes-folder root when the LLM returns no folder: the configured
+  `baseSubdir` is used as the fallback, and the base folder itself is now offered as a candidate.
+- Unsupported scripts/locales no longer raise `KeyError` while picking headings.
+- The transcript cache key no longer depends on `stat -f`/`stat -c` (their flags mean different things
+  on BSD and GNU), so caching is stable across platforms.
+
 ## [0.2.0] - 2026-11-01
 
 ### Added

@@ -81,7 +81,7 @@ main() {
   done
   [[ "${1:-}" == "--" ]] && shift
 
-  need_cmd python3 "Install Python 3.9+ and try again."
+  PYTHON="$(require_python)"
 
   if [[ $raw -eq 0 && -z "$(config_get llm.apiKeyEnv "")" && -z "${LLM_API_KEY:-}${DEEPSEEK_API_KEY:-}" ]]; then
     info "no LLM_API_KEY/DEEPSEEK_API_KEY in the environment; will fall back to ~/.pi/agent/auth.json (use --raw to skip the LLM)."
@@ -98,19 +98,25 @@ main() {
   [[ $overwrite -eq 1 ]] && args+=(--overwrite)
 
   if [[ $raw -eq 1 ]]; then
+    # Give the note a human-readable name: the real video title when cheaply available.
+    if is_url "$input" && command -v yt-dlp >/dev/null 2>&1; then
+      local fetched_title
+      fetched_title="$(yt-dlp --no-update --skip-download --socket-timeout 10 --print '%(title)s' "$input" 2>/dev/null | head -1 || true)"
+      [[ -n "$fetched_title" ]] && args+=(--title "$fetched_title")
+    fi
     info "==> writing the note (raw mode: no LLM)"
-    printf '%s\n' "$transcript" | python3 "$SCRIPT_DIR/llm_to_obsidian.py" "${args[@]}" --raw
+    printf '%s\n' "$transcript" | "$PYTHON" "$SCRIPT_DIR/llm_to_obsidian.py" "${args[@]}" --raw
     return
   fi
 
   info "==> correcting, segmenting, summarizing, filing"
-  if printf '%s\n' "$transcript" | python3 "$SCRIPT_DIR/llm_to_obsidian.py" "${args[@]}"; then
+  if printf '%s\n' "$transcript" | "$PYTHON" "$SCRIPT_DIR/llm_to_obsidian.py" "${args[@]}"; then
     return
   fi
 
   warn "LLM step failed — saving the raw transcript instead so nothing is lost."
   warn "retry later with the same command (the transcript is cached), or pass --raw to skip the LLM."
-  printf '%s\n' "$transcript" | python3 "$SCRIPT_DIR/llm_to_obsidian.py" "${args[@]}" --raw
+  printf '%s\n' "$transcript" | "$PYTHON" "$SCRIPT_DIR/llm_to_obsidian.py" "${args[@]}" --raw
 }
 
 main "$@"

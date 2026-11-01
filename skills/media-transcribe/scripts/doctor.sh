@@ -30,8 +30,17 @@ echo "config: $CONFIG_FILE"
 echo
 
 echo "core tools"
-if command -v python3 >/dev/null 2>&1; then
-  ok "python3 $(python3 -c 'import platform;print(platform.python_version())')"
+python_bin="$(resolve_python)"
+if [[ -n "$python_bin" ]]; then
+  py_version="$("$python_bin" -c 'import sys;print("%d.%d.%d" % sys.version_info[:3])')"
+  py_major="$("$python_bin" -c 'import sys;print(sys.version_info[0])')"
+  py_minor="$("$python_bin" -c 'import sys;print(sys.version_info[1])')"
+  if [[ "$py_major" -eq 3 && "$py_minor" -ge 9 ]]; then
+    ok "python: $python_bin $py_version"
+  else
+    no "python $py_version is too old (need 3.9+)"
+    note "brew install python@3.12 | sudo apt install python3"
+  fi
 else
   no "python3 missing"
   note "install Python 3.9+ (brew install python@3.12 | apt install python3)"
@@ -79,16 +88,16 @@ fi
 ok "endpoint: $(config_get llm.baseUrl "https://api.deepseek.com")  model: $(config_get llm.model "deepseek-chat")"
 echo
 
-echo "Obsidian vault"
+echo "notes folder"
 print_vault_args=()
 [[ -n "$vault_arg" ]] && print_vault_args+=(--vault "$vault_arg")
 [[ -f "$CONFIG_FILE" ]] && print_vault_args+=(--config "$CONFIG_FILE")
 # bash 3.2 (macOS) treats an empty array expansion as unbound under set -u.
-resolved="$(python3 "$SCRIPTS_DIR/llm_to_obsidian.py" --print-vault ${print_vault_args[@]+"${print_vault_args[@]}"} 2>/dev/null || true)"
+resolved="$("$PYTHON" "$SCRIPTS_DIR/llm_to_obsidian.py" --print-vault ${print_vault_args[@]+"${print_vault_args[@]}"} 2>/dev/null || true)"
 if [[ -n "$resolved" && -d "$resolved" ]]; then
-  ok "vault: $resolved"
+  ok "notes folder: $resolved"
   base="$(config_get baseSubdir "")"
-  folders="$(python3 -c '
+  folders="$("$PYTHON" -c '
 import sys
 from pathlib import Path
 vault, base = Path(sys.argv[1]), sys.argv[2]
@@ -102,8 +111,8 @@ print(sum(1 for p in root.iterdir() if p.is_dir() and not p.name.startswith(".")
     note "set \"baseSubdir\" in the config, or create a folder for notes"
   fi
 else
-  no "no vault detected"
-  note "pass --vault PATH, export OBSIDIAN_VAULT, or set \"vault\" in the config"
+  no "no notes folder detected"
+  note "pass --vault PATH, export OBSIDIAN_VAULT, or set \"vault\" in the config (any directory works)"
 fi
 echo
 

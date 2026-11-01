@@ -95,12 +95,17 @@ Optional JSON config, read from `$MEDIA_TRANSCRIBE_CONFIG` or
 }
 ```
 
-- `vault` — Obsidian vault root. Resolution order: `--vault` → `$OBSIDIAN_VAULT` → config → the vault
-  Obsidian itself has open (read from `obsidian.json`) → `~/Documents/Obsidian Vault`.
-- `baseSubdir` — restrict the LLM's folder choice to this subtree. Empty means the whole vault.
-- `locale` — `auto` writes the note in the transcript's language; pin `en`/`zh` to force one.
+- `vault` — notes folder root: an Obsidian vault **or any directory**. Resolution order: `--vault` →
+  `$OBSIDIAN_VAULT` → config → the vault Obsidian itself has open (read from `obsidian.json`) →
+  `~/Documents/Obsidian Vault`.
+- `baseSubdir` — restrict the LLM's folder choice to this subtree. Empty means the whole folder.
+- `locale` — `auto` guesses the note's heading language from the transcript's script and writes the
+  body in the transcript's language. Pins: `en`, `zh`, `ja`, `ko`, `ru`, `de`, `es`, `fr`, `pt`;
+  other scripts keep English labels (override with `headings`).
 - `tags` — tags always added; 1–3 topic tags are chosen by the LLM on top.
 - `llm` — any OpenAI-compatible chat endpoint. Missing keys fall back to `~/.pi/agent/auth.json`.
+  A local server (`http://localhost:11434/v1` for Ollama, `:1234` for LM Studio) keeps the whole
+  pipeline — transcription *and* polishing — on the machine.
 
 ## What the note looks like
 ```markdown
@@ -162,3 +167,4 @@ the same video with `to-obsidian.sh` therefore reuses the transcript and only re
 - The polished mode costs tokens: one request for a normal recording, one per chunk plus one merge for
   very long ones. `--raw` costs nothing and stays fully offline.
 - `--raw` output is the transcript verbatim, ASR mistakes included.
+- bash + Python 3.9+ on macOS/Linux; on Windows use WSL or Git Bash.
