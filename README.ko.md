@@ -194,7 +194,7 @@ URL ──yt-dlp──▶ 오디오 ──▶ handy-transcribe (symphonia → Si
 | 증상 | 해결 |
 |---|---|
 | `yt-dlp` 실패/타임아웃 | 프록시 설정(`export https_proxy=http://127.0.0.1:7890`) 또는 로컬 파일 전달 |
-| 모델 다운로드가 멈춤 | 모델은 Hugging Face에서 받습니다. `HF_ENDPOINT=https://hf-mirror.com` 설정(SHA-256 검증 유지) |
+| 모델 다운로드가 멈춤 | 모델은 Hugging Face에서 받습니다. 미러나 사내 프록시를 `HF_ENDPOINT`에 지정하세요(예: `https://your-hub-mirror.example`, SHA-256 검증 유지) |
 | `handy-transcribe not found` | `scripts/doctor.sh` 실행, 또는 `HANDY_TRANSCRIBE_BIN` 지정 |
 | LLM이 401/402 | 키 오류/잔액 부족. `llm.apiKeyEnv` 확인 또는 `--raw` 사용 |
 | 413/컨텍스트 초과 | `llm.maxDirectChars`와 `llm.chunkChars`를 줄이기 |

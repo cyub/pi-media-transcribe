@@ -195,7 +195,7 @@ URL ──yt-dlp──▶ audio ──▶ handy-transcribe (symphonia → Silero
 | Symptom | Fix |
 |---|---|
 | `yt-dlp` fails or times out | Configure a proxy (`export https_proxy=http://127.0.0.1:7890`), or pass a local file |
-| Model download stalls | Models come from Hugging Face; set `HF_ENDPOINT=https://hf-mirror.com` (SHA-256 still verified) |
+| Model download stalls | Models come from Hugging Face; point `HF_ENDPOINT` at a mirror or internal proxy, e.g. `https://your-hub-mirror.example` (SHA-256 still verified) |
 | `handy-transcribe not found` | `scripts/doctor.sh`, or point `HANDY_TRANSCRIBE_BIN` at the binary |
 | HTTP 401/402 from the LLM | Wrong/missing key or no credit — check `llm.apiKeyEnv`, or use `--raw` |
 | HTTP 413 / context overflow | Lower `llm.maxDirectChars` and `llm.chunkChars` |
