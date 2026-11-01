@@ -1,0 +1,17 @@
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local artefacts
+node_modules/
+*.log
+__pycache__/
+*.pyc
+/tmp/
+/dist/
+
+# Local config and caches (never publish)
+config.json
+.cache/

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bash syntax
+        run: |
+          for f in skills/media-transcribe/scripts/*.sh; do
+            bash -n "$f" && echo "ok: $f"
+          done
+
+      - name: Python syntax
+        run: python -m py_compile skills/media-transcribe/scripts/llm_to_obsidian.py && echo "ok: python"
+
+      - name: SKILL.md frontmatter is valid YAML
+        run: |
+          pip install --quiet pyyaml
+          python - <<'PY'
+          import re, sys, pathlib
+          text = pathlib.Path("skills/media-transcribe/SKILL.md").read_text()
+          m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+          if not m:
+              sys.exit("SKILL.md has no YAML frontmatter block")
+          try:
+              import yaml
+          except ImportError:
+              sys.exit(0)  # PyYAML not installed; the bash/python checks still ran
+          meta = yaml.safe_load(m.group(1))
+          for key in ("name", "description"):
+              if not meta.get(key):
+                  sys.exit(f"frontmatter missing {key}")
+          print(f"ok: name={meta['name']}, description={len(meta['description'])} chars")
+          PY
+
+      - name: CLI help works without a vault or API key
+        run: |
+          ./skills/media-transcribe/scripts/to-obsidian.sh 2>&1 | grep -q "Usage:" && echo "ok: usage"
+          ./skills/media-transcribe/scripts/llm_to_obsidian.py --print-vault | head -1 || true
+
+      - name: npm package contents
+        run: npm pack --dry-run 2>&1 | tail -5

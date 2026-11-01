@@ -1,0 +1,22 @@
+{
+  "vault": "~/Documents/Obsidian Vault",
+  "baseSubdir": "Resources",
+  "locale": "auto",
+  "tags": ["auto-transcribed"],
+  "llm": {
+    "baseUrl": "https://api.deepseek.com",
+    "model": "deepseek-chat",
+    "apiKeyEnv": "DEEPSEEK_API_KEY",
+    "maxDirectChars": 48000,
+    "chunkChars": 24000
+  },
+  "frontmatter": {
+    "createdField": "created_at",
+    "modifiedField": "last_modify_at"
+  },
+  "headings": {
+    "source": "Source",
+    "summary": "Core ideas",
+    "body": "Transcript"
+  }
+}

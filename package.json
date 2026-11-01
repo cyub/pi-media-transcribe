@@ -1,0 +1,46 @@
+{
+  "name": "pi-media-transcribe",
+  "version": "0.2.0",
+  "description": "Local-first transcription to structured Markdown notes: transcribe YouTube, podcasts and meetings offline with Whisper or Qwen3-ASR, then optionally have an LLM proofread, segment, summarize and file into any notes folder or Obsidian vault.",
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "pi",
+    "transcribe",
+    "transcription",
+    "subtitle",
+    "youtube",
+    "podcast",
+    "asr",
+    "whisper",
+    "qwen3-asr",
+    "speech-to-text",
+    "offline",
+    "obsidian",
+    "markdown",
+    "notes"
+  ],
+  "homepage": "https://github.com/cyub/pi-media-transcribe#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyub/pi-media-transcribe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cyub/pi-media-transcribe/issues"
+  },
+  "author": "cyub",
+  "license": "MIT",
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "files": [
+    "skills/",
+    "config.example.json",
+    "README.md",
+    "README.zh-CN.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
+}
