@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Badges now read the published npm version; the install line no longer says "once published".
+
 ## [0.2.2] - 2026-11-01
 
 ### Changed

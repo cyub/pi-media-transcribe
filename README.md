@@ -15,8 +15,8 @@
   <a href="https://github.com/cyub/pi-media-transcribe/stargazers">
     <img src="https://img.shields.io/github/stars/cyub/pi-media-transcribe?style=flat&logo=github" alt="GitHub stars">
   </a>
-  <a href="package.json">
-    <img src="https://img.shields.io/github/package-json/v/cyub/pi-media-transcribe?style=flat&logo=npm&logoColor=white" alt="Version">
+  <a href="https://www.npmjs.com/package/pi-media-transcribe">
+    <img src="https://img.shields.io/npm/v/pi-media-transcribe?style=flat&logo=npm&logoColor=white" alt="npm version">
   </a>
   <a href="https://github.com/cyub/pi-media-transcribe/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/cyub/pi-media-transcribe/ci.yml?style=flat&logo=githubactions&logoColor=white" alt="CI">
@@ -61,7 +61,7 @@ transcription itself taking 49 s on an Apple M1 Pro (≈20× realtime, `Qwen3-AS
 ## Install
 
 ```bash
-pi install npm:pi-media-transcribe   # once published on npm
+pi install npm:pi-media-transcribe
 pi install ./pi-media-transcribe    # or from a local checkout
 ```
 
