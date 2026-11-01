@@ -56,5 +56,22 @@ jobs:
           ./skills/media-transcribe/scripts/to-obsidian.sh 2>&1 | grep -q "Usage:" && echo "ok: usage"
           ./skills/media-transcribe/scripts/llm_to_obsidian.py --print-vault | head -1 || true
 
+      - name: README language switchers are complete
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          langs = ["README.md", "README.zh-CN.md", "README.ja.md", "README.ko.md"]
+          missing = []
+          for name in langs:
+              text = pathlib.Path(name).read_text()
+              for other in langs:
+                  if other != name and f'href="{other}"' not in text:
+                      missing.append(f"{name} -> {other}")
+              if "assets/logo.svg" not in text:
+                  missing.append(f"{name} -> logo")
+          print("missing links:", missing or "none")
+          sys.exit(1 if missing else 0)
+          PY
+
       - name: npm package contents
         run: npm pack --dry-run 2>&1 | tail -5

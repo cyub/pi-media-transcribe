@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-01
+
+### Changed
+
+- READMEs restructured: centred logo, title, language switcher and a shields.io badge row, followed
+  by a scannable feature list and a real terminal demo.
+- Added Japanese (`README.ja.md`) and Korean (`README.ko.md`) translations next to English and
+  Simplified Chinese; CI now fails if a language switcher or the logo link goes missing.
+
+### Added
+
+- `assets/logo.svg` — a simple waveform mark used at the top of every README.
+
 ## [0.2.1] - 2026-11-01
 
 ### Added
