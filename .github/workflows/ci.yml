@@ -27,7 +27,9 @@ jobs:
           done
 
       - name: Python syntax
-        run: python -m py_compile skills/media-transcribe/scripts/llm_to_obsidian.py && echo "ok: python"
+        run: |
+          python -m py_compile skills/media-transcribe/scripts/llm_to_obsidian.py
+          echo "ok: python"
 
       - name: SKILL.md frontmatter is valid YAML
         run: |
