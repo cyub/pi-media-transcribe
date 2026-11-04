@@ -142,13 +142,16 @@ scripts/to-obsidian.sh ./meeting.m4a --raw --vault ~/notes/inbox
 - **他の LLM:** OpenAI 互換のエンドポイントなら何でも使えます。
 
 ```json
-"llm": { "baseUrl": "https://api.openai.com", "model": "gpt-5-mini", "apiKeyEnv": "OPENAI_API_KEY" }
-"llm": { "baseUrl": "https://openrouter.ai/api", "model": "anthropic/claude-sonnet-5", "apiKeyEnv": "OPENROUTER_API_KEY" }
-"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b", "apiKeyEnv": "OLLAMA_API_KEY" }
+"llm": { "provider": "openai", "model": "gpt-5-mini" }
+"llm": { "provider": "openrouter", "model": "anthropic/claude-sonnet-5" }
+"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b" }
 ```
 
-ローカルサーバー（Ollama / LM Studio / vLLM）なら、文字起こしも整形もマシンの外に出ません。Ollama は
-キーを検証しないので、空でなければ何でも構いません。
+`llm.provider` がエンドポイントと対応する `$PROVIDER_API_KEY` を決めます。**キーはプロバイダーに
+紐づきます:** Pi に保存されたキーは、同じプロバイダーのエンドポイントにしか使われません
+（OpenAI/OpenRouter のキーが DeepSeek へ送られることはありません）。一致しない場合は別の
+キーを流用せずエラーで止まります。ローカルサーバー（Ollama / LM Studio / vLLM）なら
+文字起こしも整形もマシンの外に出ず、キーも不要です。
 
 - **転写モデル:** `model`/`quant` で ASR モデルを固定できます。`--model` を渡さないときは
   `transcribe.sh` が自動で注入するため、マシンごとに安定した既定値になります。初回はダウンロードが

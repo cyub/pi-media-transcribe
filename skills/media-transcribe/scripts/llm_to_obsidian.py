@@ -223,24 +223,43 @@ def detect_vault(config: dict) -> Path | None:
     return default if default.is_dir() else None
 
 
-def resolve_llm(config: dict) -> tuple[str | None, str, str, int, int]:
-    llm = config.get("llm") or {}
-    api_key = os.environ.get("LLM_API_KEY") or os.environ.get("DEEPSEEK_API_KEY")
-    if not api_key:
-        env_name = llm.get("apiKeyEnv")
-        if env_name:
-            api_key = os.environ.get(env_name)
-    base_url = (os.environ.get("LLM_BASE_URL") or llm.get("baseUrl") or "https://api.deepseek.com").rstrip("/")
-    model = os.environ.get("LLM_MODEL") or llm.get("model") or "deepseek-chat"
-    if not api_key:
-        api_key = api_key_from_pi_auth()
-    max_direct = int(llm.get("maxDirectChars") or DEFAULT_MAX_DIRECT_CHARS)
-    chunk_chars = int(llm.get("chunkChars") or DEFAULT_CHUNK_CHARS)
-    return api_key, base_url, model, max_direct, chunk_chars
+# Endpoints we know by name. A key is only ever sent to the endpoint of the provider it belongs to.
+PROVIDER_ENDPOINTS = {
+    "deepseek": "https://api.deepseek.com",
+    "openai": "https://api.openai.com",
+    "openrouter": "https://openrouter.ai/api",
+}
+# Only providers with a model name we are confident about get a default; everything else must be
+# configured explicitly rather than guessing a model that may not exist.
+PROVIDER_DEFAULT_MODELS = {"deepseek": "deepseek-chat"}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
 
-def api_key_from_pi_auth() -> str | None:
-    """Fall back to a key Pi already stores, if present."""
+def _host(url: str) -> str:
+    return (urllib.parse.urlparse(url).hostname or "").lower()
+
+
+def provider_of(base_url: str) -> str | None:
+    """Which provider an endpoint belongs to, if it is one we know."""
+    host = _host(base_url)
+    for provider, endpoint in PROVIDER_ENDPOINTS.items():
+        if host and host == _host(endpoint):
+            return provider
+    return None
+
+
+def is_local_endpoint(base_url: str) -> bool:
+    return _host(base_url) in LOCAL_HOSTS
+
+
+def key_from_pi_auth(provider: str | None) -> str | None:
+    """Read a key for *this provider* from Pi's auth.json.
+
+    Only the matching provider's key is ever returned: handing one provider's credential to another
+    provider's endpoint would disclose it to an unrelated service.
+    """
+    if not provider:
+        return None
     auth = Path.home() / ".pi" / "agent" / "auth.json"
     if not auth.is_file():
         return None
@@ -248,11 +267,64 @@ def api_key_from_pi_auth() -> str | None:
         data = json.loads(auth.read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001
         return None
-    for provider in ("deepseek", "openai", "openrouter"):
-        key = (data.get(provider) or {}).get("key")
-        if isinstance(key, str) and key.strip():
-            return key.strip()
-    return None
+    entry = data.get(provider) or {}
+    key = entry.get("key") if isinstance(entry, dict) else None
+    return key.strip() if isinstance(key, str) and key.strip() else None
+
+
+def resolve_llm(config: dict) -> tuple[str | None, str, str, int, int, str]:
+    """Resolve endpoint, model and key, keeping key and endpoint in the same provider.
+
+    Order for the endpoint: `$LLM_BASE_URL` -> `llm.baseUrl` -> the endpoint of `llm.provider`
+    (default DeepSeek). The key then comes from a source that belongs to that endpoint, and only
+    from that one: `$LLM_API_KEY`, `$<PROVIDER>_API_KEY`, the variable named by `llm.apiKeyEnv`,
+    a placeholder for a local server, or Pi's stored credential *for the same provider*.
+
+    Returns (key, base_url, model, max_direct_chars, chunk_chars, key_source).
+    """
+    llm = config.get("llm") or {}
+    configured_provider = str(llm.get("provider") or "").strip().lower() or None
+
+    base_url = (os.environ.get("LLM_BASE_URL") or llm.get("baseUrl") or "").rstrip("/")
+    if not base_url:
+        base_url = PROVIDER_ENDPOINTS.get(configured_provider or "deepseek", PROVIDER_ENDPOINTS["deepseek"])
+    provider = provider_of(base_url) or configured_provider
+
+    model = os.environ.get("LLM_MODEL") or llm.get("model") or ""
+    if not model:
+        model = PROVIDER_DEFAULT_MODELS.get(provider or "", "")
+
+    api_key: str | None = None
+    source = ""
+    if os.environ.get("LLM_API_KEY"):
+        api_key, source = os.environ["LLM_API_KEY"], "LLM_API_KEY"
+    if not api_key and provider:
+        env_name = f"{provider.upper()}_API_KEY"
+        if os.environ.get(env_name):
+            api_key, source = os.environ[env_name], env_name
+    if not api_key:
+        env_name = str(llm.get("apiKeyEnv") or "")
+        if env_name and os.environ.get(env_name):
+            api_key, source = os.environ[env_name], env_name
+            implied = env_name.replace("_API_KEY", "").replace("_KEY", "").lower()
+            if provider and implied in PROVIDER_ENDPOINTS and implied != provider:
+                print(
+                    f"warning: llm.apiKeyEnv is {env_name} but the endpoint is {base_url} "
+                    f"({provider}); that key will be sent to {provider}. Set llm.baseUrl or "
+                    f"llm.provider to match.",
+                    file=sys.stderr,
+                )
+    if not api_key and is_local_endpoint(base_url):
+        # Local servers (Ollama, LM Studio, vLLM) ignore the key, so a placeholder is enough.
+        api_key, source = "local", "no key needed for a local endpoint"
+    if not api_key and provider:
+        api_key = key_from_pi_auth(provider)
+        if api_key:
+            source = f"~/.pi/agent/auth.json ({provider})"
+
+    max_direct = int(llm.get("maxDirectChars") or DEFAULT_MAX_DIRECT_CHARS)
+    chunk_chars = int(llm.get("chunkChars") or DEFAULT_CHUNK_CHARS)
+    return api_key, base_url, model, max_direct, chunk_chars, source
 
 
 # --------------------------------------------------------------------------- #
@@ -582,15 +654,22 @@ def main() -> None:
         note = build_raw_note(transcript, args.source, title, locale, config, is_youtube)
         print(f"raw mode: no LLM, {len(transcript):,} chars kept verbatim", file=sys.stderr)
     else:
-        api_key, base_url, model, max_direct, chunk_chars = resolve_llm(config)
+        api_key, base_url, model, max_direct, chunk_chars, key_source = resolve_llm(config)
         if not api_key:
+            provider = provider_of(base_url) or "the endpoint's provider"
             raise SystemExit(
-                "error: no LLM API key. Set LLM_API_KEY (or the variable named by llm.apiKeyEnv "
-                "in your config), run /login in Pi so ~/.pi/agent/auth.json holds a DeepSeek key, "
-                "or use --raw to skip the LLM."
+                f"error: no LLM API key for {base_url}. Set LLM_API_KEY, or the variable named by "
+                f"llm.apiKeyEnv, or store a {provider} key for that same provider (run /login in Pi "
+                f"for DeepSeek), or use --raw to skip the LLM. A key is never taken from another "
+                f"provider, because that would send it to a service it does not belong to."
             )
-        print(f"LLM: {model} via {base_url} (note language: {locale}, {len(folders)} folders offered)",
-              file=sys.stderr)
+        if not model:
+            raise SystemExit(
+                f"error: no model configured for {base_url}. Set llm.model (for example "
+                f"\"gpt-5-mini\" for OpenAI or \"qwen3:8b\" for a local Ollama server)."
+            )
+        print(f"LLM: {model} via {base_url} (key: {key_source}; note language: {locale}, "
+              f"{len(folders)} folders offered)", file=sys.stderr)
         if len(transcript) <= max_direct:
             result = run_single_pass(api_key, base_url, model, transcript, args.source, folders)
         else:

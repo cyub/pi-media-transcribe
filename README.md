@@ -146,13 +146,17 @@ Optional. Copy [`config.example.json`](config.example.json) to
 - **Other LLMs:** anything OpenAI-compatible.
 
 ```json
-"llm": { "baseUrl": "https://api.openai.com", "model": "gpt-5-mini", "apiKeyEnv": "OPENAI_API_KEY" }
-"llm": { "baseUrl": "https://openrouter.ai/api", "model": "anthropic/claude-sonnet-5", "apiKeyEnv": "OPENROUTER_API_KEY" }
-"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b", "apiKeyEnv": "OLLAMA_API_KEY" }
+"llm": { "provider": "openai", "model": "gpt-5-mini" }
+"llm": { "provider": "openrouter", "model": "anthropic/claude-sonnet-5" }
+"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b" }
 ```
 
-A local server (Ollama, LM Studio, vLLM) keeps transcription *and* polishing on the machine. Ollama
-ignores the key, so any non-empty value works.
+`llm.provider` picks the endpoint (`deepseek`, `openai`, `openrouter`) together with the matching
+`$PROVIDER_API_KEY` variable. **Keys are provider-bound:** a key you gave Pi is only used when the
+endpoint belongs to the same provider, so an OpenAI or OpenRouter credential is never posted to
+DeepSeek (or vice versa) — if nothing matches, the run stops and tells you why instead of reusing a
+foreign credential. A local server (Ollama, LM Studio, vLLM) keeps transcription *and* polishing on
+the machine and needs no key at all.
 
 - **Long recordings:** under `llm.maxDirectChars` (default 48 000 chars) one request; beyond that,
   `llm.chunkChars` chunks (default 24 000) are compressed and merged.

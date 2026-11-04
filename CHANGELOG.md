@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-11-01
+
+### Fixed
+
+- **Security: a saved key could be sent to the wrong provider.** When no key or endpoint was
+  configured, the helper took the first key it found in Pi's `auth.json` (DeepSeek, then OpenAI, then
+  OpenRouter) and always posted to the default DeepSeek endpoint — so an OpenAI or OpenRouter
+  credential, and the transcript, could be disclosed to an unrelated service. Keys are now bound to
+  their provider: the saved key is used only when it belongs to the resolved endpoint, and otherwise
+  the run fails with an explanation instead of borrowing a foreign credential. Reported by an
+  automated package scanner.
+- No default model is invented for providers we do not know a model name for (OpenAI, OpenRouter);
+  the run asks for `llm.model` instead of guessing.
+- `llm.apiKeyEnv` naming one provider while the endpoint belongs to another now prints a warning
+  before sending the key.
+
+### Added
+
+- Provider awareness: `llm.provider` selects the endpoint, `$<PROVIDER>_API_KEY` is honoured
+  (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`, …), and a local endpoint (`localhost`, `127.0.0.1`) needs
+  no key at all — useful for Ollama and LM Studio.
+- `tests/test_llm_config.py` locks this behaviour down (9 stdlib `unittest` cases) and runs in CI.
+
 ## [0.2.4] - 2026-11-01
 
 ### Changed

@@ -31,6 +31,9 @@ jobs:
           python -m py_compile skills/media-transcribe/scripts/llm_to_obsidian.py
           echo "ok: python"
 
+      - name: Credential handling tests
+        run: python -m unittest discover -s tests -t tests -v
+
       - name: SKILL.md frontmatter is valid YAML
         run: |
           pip install --quiet pyyaml

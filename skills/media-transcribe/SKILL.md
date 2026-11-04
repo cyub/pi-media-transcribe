@@ -133,9 +133,11 @@ Optional JSON config, read from `$MEDIA_TRANSCRIBE_CONFIG` or
   body in the transcript's language. Pins: `en`, `zh`, `ja`, `ko`, `ru`, `de`, `es`, `fr`, `pt`;
   other scripts keep English labels (override with `headings`).
 - `tags` — tags always added; 1–3 topic tags are chosen by the LLM on top.
-- `llm` — any OpenAI-compatible chat endpoint. Missing keys fall back to `~/.pi/agent/auth.json`.
-  A local server (`http://localhost:11434/v1` for Ollama, `:1234` for LM Studio) keeps the whole
-  pipeline — transcription *and* polishing — on the machine.
+- `llm` — any OpenAI-compatible chat endpoint. Keys are provider-bound: `llm.provider` (or the host of
+  `llm.baseUrl`) decides which `$PROVIDER_API_KEY` or stored `~/.pi/agent/auth.json` credential is
+  used, and a key belonging to another provider is never sent — the run fails with an explanation
+  instead. A local server (`http://localhost:11434/v1` for Ollama, `:1234` for LM Studio) keeps the
+  whole pipeline — transcription *and* polishing — on the machine and needs no key.
 
 ## What the note looks like
 ```markdown

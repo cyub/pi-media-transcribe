@@ -142,12 +142,15 @@ scripts/to-obsidian.sh ./会议.m4a --raw --vault ~/notes/inbox
 - **换用别的 LLM**：任何 OpenAI 兼容端点都行。
 
 ```json
-"llm": { "baseUrl": "https://api.openai.com", "model": "gpt-5-mini", "apiKeyEnv": "OPENAI_API_KEY" }
-"llm": { "baseUrl": "https://openrouter.ai/api", "model": "anthropic/claude-sonnet-5", "apiKeyEnv": "OPENROUTER_API_KEY" }
-"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b", "apiKeyEnv": "OLLAMA_API_KEY" }
+"llm": { "provider": "openai", "model": "gpt-5-mini" }
+"llm": { "provider": "openrouter", "model": "anthropic/claude-sonnet-5" }
+"llm": { "baseUrl": "http://localhost:11434/v1", "model": "qwen3:8b" }
 ```
 
-本地服务（Ollama / LM Studio / vLLM）能让转写和润色都不出本机；Ollama 不校验 key，随便给个非空值即可。
+`llm.provider` 决定端点和对应的 `$PROVIDER_API_KEY` 环境变量。**key 与端点绑定**：Pi 里存着的凭据只有
+在属于同一个 provider 时才会被使用，OpenAI/OpenRouter 的 key 绝不会被发到 DeepSeek（反之亦然）；匹配
+不上时直接报错说明原因，而不是借用别人的凭据。本地服务（Ollama / LM Studio / vLLM）能让转写和润色
+都不出本机，而且完全不需要 key。
 
 - **长录音**：少于 `llm.maxDirectChars`（默认 48000 字符）一次性发给模型；更长则按 `llm.chunkChars`
   （默认 24000）分块压缩再合并。
